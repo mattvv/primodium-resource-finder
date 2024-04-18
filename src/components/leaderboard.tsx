@@ -198,7 +198,7 @@ export const Leaderboard = () => {
 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Find the closest Mineral
+          Find the closest Minerals to your home base
         </CardTitle>
         <CardDescription>
         Address: <input
