@@ -19,9 +19,14 @@ import {
   Table,
 } from "./ui/table";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
-import { hexToAddress, parseHex, shortenAddress } from "@/lib/utils";
 
 const NULL_PARENT = '\\x0000000000000000000000000000000000000000000000000000000000000000'
+const RESOURCES = [   "None",
+ "Primary",
+   "Kimberlite",
+   "Iridium",
+   "Platinum",
+   "Titanium"]
 
 const AccountQuery = graphql(`
   query AccountQuery($account: bytea!) {
@@ -129,6 +134,22 @@ export const Leaderboard = () => {
     executeAsteroidsQuery({ requestPolicy: "network-only" })
   }, [executeQuery, executeHomeWorldQuery, executeDistanceQuery, executeAsteroidsQuery]);
 
+  let joinedAsteroids: { y?: number | null | undefined; x?: number | null | undefined; entity: unknown; parent?: unknown; mapId: unknown; isAsteroid: boolean | null; distance: number }[] = [];
+  if (asteroidsQuery.data?.viewAsteroid) {
+    joinedAsteroids = asteroidsQuery.data?.viewAsteroid.map((asteroid) => {
+      const pos = distanceQuery.data?.viewPosition.find((pos) => pos.entity === asteroid.entity);
+      //add a property distance based on the distance formula
+      const distance = Math.sqrt(Math.pow((pos?.x || 0) - (coords?.x || 0), 2) + Math.pow((pos?.y || 0) - (coords?.y || 0), 2));
+      return {
+        ...asteroid,
+        ...pos,
+        distance
+      }
+    })
+  }
+
+  //sort the asteroids by distance
+  joinedAsteroids = joinedAsteroids.sort((a, b) => a.distance - b.distance);
 
   return (
     <Card className="w-full relative">
@@ -173,23 +194,20 @@ export const Leaderboard = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="">Distance from You</TableHead>
-                <TableHead className="">Player</TableHead>
-                <TableHead className="text-right">Score</TableHead>
+                <TableHead className="">Resource Type</TableHead>
+                <TableHead className="text-right">Co-Ordinates</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {accountResult.data?.viewMapColonies?.map(({ entity, value }, i) => (
+              {joinedAsteroids.map(({ entity, distance, mapId }, i) => (
                 <TableRow key={entity as string}>
-                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{distance}</TableCell>
                   <TableCell>
-                    {shortenAddress(hexToAddress(parseHex(entity as string)))}
+                    {RESOURCES[mapId as number] || "Unknown"}
                   </TableCell>
                   <TableCell className="text-right">
-                    {/* {(
-                      Number(BigInt(value as string)) /
-                      10 ** 18
-                    ).toLocaleString()} */}
+                    [{coords?.x}, {coords?.y}]
                   </TableCell>
                 </TableRow>
               ))}
