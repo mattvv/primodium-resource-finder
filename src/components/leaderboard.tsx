@@ -68,12 +68,12 @@ const DistanceQuery = graphql(`
 `);
 
 const AsteroidsQuery = graphql(`
-  query Asteroids($asteroids: [bytea!]) {
+  query Asteroids($asteroids: [bytea!], $selectedResource: smallint!) {
     viewAsteroid(where: 
       {
         entity: { _in: $asteroids }
         isAsteroid: { _eq: true }
-        mapId: { _in: [2, 3, 4, 5] }
+        mapId: { _eq: $selectedResource }
       }) {
       entity
       isAsteroid
@@ -86,7 +86,8 @@ export const Leaderboard = () => {
   const [account, setAccount] = useState(
     "0xaD343355A5326bD86C5852eDb4E3272a7467A343"
   );
-  const [boxSize, setBoxSize] = useState(300);
+  const [boxSize, setBoxSize] = useState(50);
+  const [selectedResource, setSelectedResource] = useState(2);
 
   const [accountResult, executeQuery] = useQuery({
     query: AccountQuery,
@@ -131,6 +132,7 @@ export const Leaderboard = () => {
     variables: {
       asteroids:
         distanceQuery.data?.viewPosition?.map((pos) => pos.entity) || [],
+      selectedResource,
     },
     pause: !distanceQuery.data?.viewPosition,
   });
@@ -217,12 +219,13 @@ export const Leaderboard = () => {
             value={boxSize}
             onChange={(e) => setBoxSize(Number(e.target.value))}
           />
-          {/* <select>
+          <br/>
+          <select onChange={(e) => setSelectedResource(Number(e.target.value))}>
             <option value="2">Kimberlite</option>
             <option value="3">Iridium</option>
             <option value="4">Platinum</option>
             <option value="5">Titanium</option>
-          </select> */}
+          </select>
         </CardDescription>
       </CardHeader>
 
