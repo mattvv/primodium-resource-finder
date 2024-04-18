@@ -1,4 +1,3 @@
-import { Information } from "./components/information";
 import { Leaderboard } from "./components/leaderboard";
 import { ModeToggle } from "./components/mode-toggle";
 
