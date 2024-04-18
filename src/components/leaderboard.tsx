@@ -54,9 +54,19 @@ const DistanceQuery = graphql(`
   }
 `)
 
+const AsteroidsQuery = graphql(`
+  query Asteroids($asteroids: [bytea!]) {
+    viewAsteroid(where: {entity: { _in: $asteroids}}) {
+      entity
+      isAsteroid
+      mapId
+    }
+  }
+`);
+
 export const Leaderboard = () => {
   const [account, setAccount] = useState("0xaD343355A5326bD86C5852eDb4E3272a7467A343");
-  const [boxSize, setBoxSize] = useState(50);
+  const [boxSize, setBoxSize] = useState(1000);
 
   const [accountResult, executeQuery] = useQuery({
     query: AccountQuery,
@@ -100,13 +110,25 @@ export const Leaderboard = () => {
 
   console.log("distanceQuery", distanceQuery.data?.viewPosition);
 
+  const [asteroidsQuery, executeAsteroidsQuery] = useQuery({
+    query: AsteroidsQuery,
+    variables: {
+      asteroids: distanceQuery.data?.viewPosition?.map((pos) => pos.entity) || [],
+    },
+    pause: !distanceQuery.data?.viewPosition,
+  });
+
+  console.log("asteroids query", asteroidsQuery.data?.viewAsteroid);
+
   const refetch = useCallback(() => {
     executeQuery({
       requestPolicy: "network-only",
     });
     executeHomeWorldQuery({ requestPolicy: "network-only" })
     executeDistanceQuery({ requestPolicy: "network-only" })
-  }, [executeQuery, executeHomeWorldQuery, executeDistanceQuery]);
+    executeAsteroidsQuery({ requestPolicy: "network-only" })
+  }, [executeQuery, executeHomeWorldQuery, executeDistanceQuery, executeAsteroidsQuery]);
+
 
   return (
     <Card className="w-full relative">
