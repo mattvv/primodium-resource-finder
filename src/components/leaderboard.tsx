@@ -21,6 +21,8 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { hexToAddress, parseHex, shortenAddress } from "@/lib/utils";
 
+const NULL_PARENT = '\\x0000000000000000000000000000000000000000000000000000000000000000'
+
 const AccountQuery = graphql(`
   query AccountQuery($account: bytea!) {
     viewMapColonies(where: { entity: { _eq: $account } }) {
@@ -42,17 +44,19 @@ const HomeWorldQuery = graphql(`
 `)
 
 const DistanceQuery = graphql(`
-  query Box($xLow: float8_comparison_exp, $yLow: float8_comparison_exp, $xHigh: float8_comparison_exp, $yHigh: float8_comparison_exp) {
-  viewPosition(where: { x: { _lte: $xLow, _gte: $xHigh }, y: { _gte: $yLow, _lte: $yHigh }, parent: { _eq: "\\x0000000000000000000000000000000000000000000000000000000000000000"}}) {
-    parent
-    entity,
-    x,
-    y
+  query Box($xLow: Int, $yLow: Int, $xHigh: Int, $yHigh: Int, $parent: bytea!) {
+    viewPosition(where: { x: { _lte: $xHigh, _gte: $xLow }, y: { _gte: $yLow, _lte: $yHigh }, parent: { _eq: $parent}}) {
+      parent
+      entity,
+      x,
+      y
+    }
   }
 `)
 
 export const Leaderboard = () => {
   const [account, setAccount] = useState("0xaD343355A5326bD86C5852eDb4E3272a7467A343");
+  const [boxSize, setBoxSize] = useState(50);
 
   const [accountResult, executeQuery] = useQuery({
     query: AccountQuery,
@@ -61,19 +65,10 @@ export const Leaderboard = () => {
     },
   });
 
-  const refetch = useCallback(() => {
-    executeQuery({
-      requestPolicy: "network-only",
-    });
-    executeHomeWorldQuery({ requestPolicy: "network-only" })
-  }, [executeQuery]);
 
-  console.log("result", accountResult.data?.viewMapColonies?.[0].itemKeys);
+
   const itemKeysJson = JSON.parse(accountResult.data?.viewMapColonies[0]?.itemKeys || "{}");
-  console.log("itemKeysJson", itemKeysJson);
   const homeWorldEntity = (itemKeysJson.json || [])[0];
-  console.log("homeWorldEntity", (homeWorldEntity || "").replace("0x", '\\'), "pause", !homeWorldEntity);
-
   const [homeWorldResult, executeHomeWorldQuery] = useQuery({
     query: HomeWorldQuery,
     variables: {
@@ -81,11 +76,37 @@ export const Leaderboard = () => {
     },
     pause: !homeWorldEntity,
   });
-  // const []
 
   const coords = homeWorldResult.data?.viewPosition?.[0];
-  console.log("coords", coords?.x, coords?.y);
 
+  const xLow = (coords?.x || 0) - boxSize;
+  const xHigh = (coords?.x || 0) + boxSize;
+  const yLow = (coords?.y || 0) - boxSize;
+  const yHigh = (coords?.y || 0) + boxSize;
+
+  console.log("xLow", xLow, "xHigh", xHigh, "yLow", yLow, "yHigh", yHigh, "coords", coords)
+  
+  const [distanceQuery, executeDistanceQuery] = useQuery({
+    query: DistanceQuery,
+    variables: {
+      xLow,
+      xHigh,
+      yLow,
+      yHigh,
+      parent: NULL_PARENT,
+    },
+    pause: !coords,
+  });
+
+  console.log("distanceQuery", distanceQuery.data?.viewPosition);
+
+  const refetch = useCallback(() => {
+    executeQuery({
+      requestPolicy: "network-only",
+    });
+    executeHomeWorldQuery({ requestPolicy: "network-only" })
+    executeDistanceQuery({ requestPolicy: "network-only" })
+  }, [executeQuery, executeHomeWorldQuery, executeDistanceQuery]);
 
   return (
     <Card className="w-full relative">
