@@ -20,8 +20,8 @@ import {
 } from "./ui/table";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 
-const NULL_PARENT =
-  "\\x0000000000000000000000000000000000000000000000000000000000000000";
+// const NULL_PARENT =
+//   "\\x0000000000000000000000000000000000000000000000000000000000000000";
 const RESOURCES = [
   "None",
   "Primary",
@@ -52,12 +52,11 @@ const HomeWorldQuery = graphql(`
 `);
 
 const DistanceQuery = graphql(`
-  query Box($xLow: Int, $yLow: Int, $xHigh: Int, $yHigh: Int, $parent: bytea!) {
+  query Box($xLow: Int, $yLow: Int, $xHigh: Int, $yHigh: Int) {
     viewPosition(
       where: {
         x: { _lte: $xHigh, _gte: $xLow }
         y: { _gte: $yLow, _lte: $yHigh }
-        parent: { _eq: $parent }
       }
     ) {
       parent
@@ -70,7 +69,12 @@ const DistanceQuery = graphql(`
 
 const AsteroidsQuery = graphql(`
   query Asteroids($asteroids: [bytea!]) {
-    viewAsteroid(where: { entity: { _in: $asteroids } }) {
+    viewAsteroid(where: 
+      {
+        entity: { _in: $asteroids }
+        isAsteroid: { _eq: true }
+        mapId: { _in: [2, 3, 4, 5] }
+      }) {
       entity
       isAsteroid
       mapId
@@ -82,7 +86,7 @@ export const Leaderboard = () => {
   const [account, setAccount] = useState(
     "0xaD343355A5326bD86C5852eDb4E3272a7467A343"
   );
-  const [boxSize, setBoxSize] = useState(100);
+  const [boxSize, setBoxSize] = useState(300);
 
   const [accountResult, executeQuery] = useQuery({
     query: AccountQuery,
@@ -117,7 +121,7 @@ export const Leaderboard = () => {
       xHigh,
       yLow,
       yHigh,
-      parent: NULL_PARENT,
+      // parent: NULL_PARENT,
     },
     pause: !coords,
   });
