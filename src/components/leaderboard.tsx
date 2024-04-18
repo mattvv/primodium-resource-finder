@@ -244,14 +244,14 @@ export const Leaderboard = () => {
             </TableHeader>
 
             <TableBody>
-              {joinedAsteroids.map(({ entity, distance, mapId }) => (
+              {joinedAsteroids.map(({ entity, distance, mapId, x, y }) => (
                 <TableRow key={entity as string}>
                   <TableCell>{distance}</TableCell>
                   <TableCell>
                     {RESOURCES[mapId as number] || "Unknown"}
                   </TableCell>
                   <TableCell className="text-right">
-                    [{coords?.x}, {coords?.y}]
+                    [{x}, {y}]
                   </TableCell>
                 </TableRow>
               ))}
