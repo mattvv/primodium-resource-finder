@@ -20,13 +20,16 @@ import {
 } from "./ui/table";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 
-const NULL_PARENT = '\\x0000000000000000000000000000000000000000000000000000000000000000'
-const RESOURCES = [   "None",
- "Primary",
-   "Kimberlite",
-   "Iridium",
-   "Platinum",
-   "Titanium"]
+const NULL_PARENT =
+  "\\x0000000000000000000000000000000000000000000000000000000000000000";
+const RESOURCES = [
+  "None",
+  "Primary",
+  "Kimberlite",
+  "Iridium",
+  "Platinum",
+  "Titanium",
+];
 
 const AccountQuery = graphql(`
   query AccountQuery($account: bytea!) {
@@ -40,28 +43,34 @@ const AccountQuery = graphql(`
 
 const HomeWorldQuery = graphql(`
   query Map($entity: bytea!) {
-    viewPosition(where: { entity: { _eq: $entity}}) {
+    viewPosition(where: { entity: { _eq: $entity } }) {
       entity
       x
       y
     }
   }
-`)
+`);
 
 const DistanceQuery = graphql(`
   query Box($xLow: Int, $yLow: Int, $xHigh: Int, $yHigh: Int, $parent: bytea!) {
-    viewPosition(where: { x: { _lte: $xHigh, _gte: $xLow }, y: { _gte: $yLow, _lte: $yHigh }, parent: { _eq: $parent}}) {
+    viewPosition(
+      where: {
+        x: { _lte: $xHigh, _gte: $xLow }
+        y: { _gte: $yLow, _lte: $yHigh }
+        parent: { _eq: $parent }
+      }
+    ) {
       parent
-      entity,
-      x,
+      entity
+      x
       y
     }
   }
-`)
+`);
 
 const AsteroidsQuery = graphql(`
   query Asteroids($asteroids: [bytea!]) {
-    viewAsteroid(where: {entity: { _in: $asteroids}}) {
+    viewAsteroid(where: { entity: { _in: $asteroids } }) {
       entity
       isAsteroid
       mapId
@@ -70,24 +79,26 @@ const AsteroidsQuery = graphql(`
 `);
 
 export const Leaderboard = () => {
-  const [account, setAccount] = useState("0xaD343355A5326bD86C5852eDb4E3272a7467A343");
-  const [boxSize, setBoxSize] = useState(1000);
+  const [account, setAccount] = useState(
+    "0xaD343355A5326bD86C5852eDb4E3272a7467A343"
+  );
+  const [boxSize, setBoxSize] = useState(100);
 
   const [accountResult, executeQuery] = useQuery({
     query: AccountQuery,
     variables: {
-      account: account.replace("0x", '\\x000000000000000000000000'),
+      account: account.replace("0x", "\\x000000000000000000000000"),
     },
   });
 
-
-
-  const itemKeysJson = JSON.parse(accountResult.data?.viewMapColonies[0]?.itemKeys || "{}");
+  const itemKeysJson = JSON.parse(
+    accountResult.data?.viewMapColonies[0]?.itemKeys || "{}"
+  );
   const homeWorldEntity = (itemKeysJson.json || [])[0];
   const [homeWorldResult, executeHomeWorldQuery] = useQuery({
     query: HomeWorldQuery,
     variables: {
-      entity: (homeWorldEntity || "").replace("0x", '\\x'),
+      entity: (homeWorldEntity || "").replace("0x", "\\x"),
     },
     pause: !homeWorldEntity,
   });
@@ -99,8 +110,6 @@ export const Leaderboard = () => {
   const yLow = (coords?.y || 0) - boxSize;
   const yHigh = (coords?.y || 0) + boxSize;
 
-  console.log("xLow", xLow, "xHigh", xHigh, "yLow", yLow, "yHigh", yHigh, "coords", coords)
-  
   const [distanceQuery, executeDistanceQuery] = useQuery({
     query: DistanceQuery,
     variables: {
@@ -113,12 +122,11 @@ export const Leaderboard = () => {
     pause: !coords,
   });
 
-  console.log("distanceQuery", distanceQuery.data?.viewPosition);
-
   const [asteroidsQuery, executeAsteroidsQuery] = useQuery({
     query: AsteroidsQuery,
     variables: {
-      asteroids: distanceQuery.data?.viewPosition?.map((pos) => pos.entity) || [],
+      asteroids:
+        distanceQuery.data?.viewPosition?.map((pos) => pos.entity) || [],
     },
     pause: !distanceQuery.data?.viewPosition,
   });
@@ -129,23 +137,41 @@ export const Leaderboard = () => {
     executeQuery({
       requestPolicy: "network-only",
     });
-    executeHomeWorldQuery({ requestPolicy: "network-only" })
-    executeDistanceQuery({ requestPolicy: "network-only" })
-    executeAsteroidsQuery({ requestPolicy: "network-only" })
-  }, [executeQuery, executeHomeWorldQuery, executeDistanceQuery, executeAsteroidsQuery]);
+    executeHomeWorldQuery({ requestPolicy: "network-only" });
+    executeDistanceQuery({ requestPolicy: "network-only" });
+    executeAsteroidsQuery({ requestPolicy: "network-only" });
+  }, [
+    executeQuery,
+    executeHomeWorldQuery,
+    executeDistanceQuery,
+    executeAsteroidsQuery,
+  ]);
 
-  let joinedAsteroids: { y?: number | null | undefined; x?: number | null | undefined; entity: unknown; parent?: unknown; mapId: unknown; isAsteroid: boolean | null; distance: number }[] = [];
+  let joinedAsteroids: {
+    y?: number | null | undefined;
+    x?: number | null | undefined;
+    entity: unknown;
+    parent?: unknown;
+    mapId: unknown;
+    isAsteroid: boolean | null;
+    distance: number;
+  }[] = [];
   if (asteroidsQuery.data?.viewAsteroid) {
     joinedAsteroids = asteroidsQuery.data?.viewAsteroid.map((asteroid) => {
-      const pos = distanceQuery.data?.viewPosition.find((pos) => pos.entity === asteroid.entity);
+      const pos = distanceQuery.data?.viewPosition.find(
+        (pos) => pos.entity === asteroid.entity
+      );
       //add a property distance based on the distance formula
-      const distance = Math.sqrt(Math.pow((pos?.x || 0) - (coords?.x || 0), 2) + Math.pow((pos?.y || 0) - (coords?.y || 0), 2));
+      const distance = Math.sqrt(
+        Math.pow((pos?.x || 0) - (coords?.x || 0), 2) +
+          Math.pow((pos?.y || 0) - (coords?.y || 0), 2)
+      );
       return {
         ...asteroid,
         ...pos,
-        distance
-      }
-    })
+        distance,
+      };
+    });
   }
 
   //sort the asteroids by distance
@@ -175,13 +201,24 @@ export const Leaderboard = () => {
           Find the closest Mineral
         </CardTitle>
         <CardDescription>
-          <input placeholder="address"></input>
-          <select>
+        Address: <input
+            type="text"
+            placeholder="0xaD343355A5326bD86C5852eDb4E3272a7467A343"
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+          /><br/>
+          Box Size: <input
+            type="text"
+            placeholder="Box Size: 100"
+            value={boxSize}
+            onChange={(e) => setBoxSize(Number(e.target.value))}
+          />
+          {/* <select>
             <option value="2">Kimberlite</option>
             <option value="3">Iridium</option>
             <option value="4">Platinum</option>
             <option value="5">Titanium</option>
-          </select>
+          </select> */}
         </CardDescription>
       </CardHeader>
 
